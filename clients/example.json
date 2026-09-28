@@ -1,0 +1,23 @@
+{
+  "name": "Example Church",
+  "presets": [
+    {
+      "name": "Primary",
+      "style": {
+        "fg": "#1E3A5F",
+        "bg": "#FFFFFF",
+        "transparent": false,
+        "shape": "rounded",
+        "eye": "rounded",
+        "logo": null,
+        "logoSize": 20,
+        "knockout": true,
+        "ec": "auto",
+        "frame": "bottom",
+        "frameText": "Scan me",
+        "frameColor": "#1E3A5F",
+        "frameRadius": 2
+      }
+    }
+  ]
+}

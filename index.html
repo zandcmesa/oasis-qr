@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oasis QR — print-safe QR codes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#EEF0EC; --panel:#FFFFFF; --ink:#181B1E; --mute:#666C72; --line:#D8DCD6;
+  --accent:#1E6E5C; --accent-ink:#FFFFFF; --soft:#E3EBE6; --warn:#A85A12; --bad:#B23A2E; --ok:#1E6E5C;
+  --field:#F6F7F4; --radius:14px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141715; --panel:#1D2120; --ink:#EDEFEA; --mute:#9AA19C; --line:#2F3533;
+  --accent:#5CC4A8; --accent-ink:#0F1512; --soft:#213330; --warn:#E39A4C; --bad:#E5756A; --ok:#5CC4A8; --field:#171B19;
+}}
+:root[data-theme="dark"]{
+  --bg:#141715; --panel:#1D2120; --ink:#EDEFEA; --mute:#9AA19C; --line:#2F3533;
+  --accent:#5CC4A8; --accent-ink:#0F1512; --soft:#213330; --warn:#E39A4C; --bad:#E5756A; --ok:#5CC4A8; --field:#171B19;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;margin:0;line-height:1.1}
+h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:17px;font-weight:700;margin-bottom:12px}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 20px 8px;max-width:1180px;margin:0 auto}
+header p{color:var(--mute)}
+
+.app{display:grid;grid-template-columns:1fr;gap:16px;padding:12px 16px 40px;max-width:1180px;margin:0 auto}
+@media (min-width:900px){
+  .app{grid-template-columns:minmax(0,1fr) 420px;align-items:start;padding:12px 20px 60px}
+  .preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.preview{padding:18px;display:flex;flex-direction:column;gap:14px}
+.stage{display:grid;place-items:center;background:
+  repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0/16px 16px;border-radius:10px;padding:22px;min-height:260px}
+.stage svg{max-width:min(100%,360px);height:auto;display:block;filter:drop-shadow(0 8px 24px rgba(0,0,0,.08))}
+@media (min-width:900px){.stage svg{max-width:min(100%,440px)}}
+.stage .empty{color:var(--mute);text-align:center;padding:40px 10px}
+
+.check{display:flex;flex-direction:column;gap:6px}
+.check .row{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check .dot{width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:var(--ok)}
+.check .row.warn .dot{background:var(--warn)} .check .row.bad .dot{background:var(--bad)}
+.check .row.warn{color:var(--warn)} .check .row.bad{color:var(--bad)}
+.check .meta{color:var(--mute);font-size:13px}
+
+.exports{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.exports select{flex:1 1 150px}
+.note{color:var(--mute);font-size:13px}
+
+.controls{display:flex;flex-direction:column;gap:14px}
+.section{padding:18px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+label{font-size:13px;font-weight:600}
+label .hint{font-weight:400;color:var(--mute)}
+input[type=text],input[type=url],input[type=email],input[type=tel],input[type=password],input[type=number],select,textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--field);color:var(--ink);outline:none}
+textarea{min-height:76px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{padding:7px 12px;border:1px solid var(--line);background:var(--field);border-radius:999px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.color{display:flex;align-items:center;gap:8px}
+.color input[type=color]{width:38px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer}
+.color input[type=text]{flex:1;font-variant-numeric:tabular-nums}
+.color label.inline{display:flex;align-items:center;gap:6px;font-weight:500;white-space:nowrap}
+
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangeval{color:var(--mute);font-size:13px;font-variant-numeric:tabular-nums}
+
+.btn{padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:var(--field);cursor:pointer;font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.logo-row{display:flex;gap:10px;align-items:center}
+.logo-row .thumb{width:48px;height:48px;border:1px solid var(--line);border-radius:8px;background:var(--field);display:grid;place-items:center;overflow:hidden;flex:none}
+.logo-row .thumb img{max-width:100%;max-height:100%}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.presets{display:flex;flex-direction:column;gap:8px}
+.preset{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+.preset .sw{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);flex:none}
+.preset .name{flex:1;font-weight:600}
+.preset .actions{display:flex;gap:6px}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+details summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--mute)}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Oasis QR</h1>
+    <p id="tagline">Branded codes that still scan when they're printed.</p>
+  </div>
+</header>
+
+<main class="app">
+  <section class="panel preview" aria-label="Preview and export">
+    <div class="stage" id="stage"><p class="empty">Enter a link or some content and your code appears here.</p></div>
+    <div class="check" id="check"></div>
+    <div class="exports">
+      <select id="pngSize" aria-label="PNG size">
+        <option value="512">PNG · 512 px (web)</option>
+        <option value="1080">PNG · 1080 px (social)</option>
+        <option value="600">PNG · 2 in at 300 dpi</option>
+        <option value="1200" selected>PNG · 4 in at 300 dpi</option>
+        <option value="2400">PNG · 8 in at 300 dpi</option>
+        <option value="4800">PNG · 16 in at 300 dpi</option>
+      </select>
+      <button class="btn primary" id="dlPng">Save PNG</button>
+      <button class="btn" id="dlSvg">Save SVG</button>
+      <button class="btn" id="copySvg">Copy SVG</button>
+    </div>
+    <p class="note">SVG is the one to hand to a printer: it scales to any size without softening.</p>
+  </section>
+
+  <section class="controls">
+    <div class="panel section">
+      <h2>Content</h2>
+      <div class="seg" id="typeSeg" role="tablist"></div>
+      <div id="fields" style="margin-top:12px"></div>
+      <details style="margin-top:8px"><summary>What gets encoded</summary><pre id="payload" style="white-space:pre-wrap;font-size:12px;color:var(--mute);margin:8px 0 0"></pre></details>
+    </div>
+
+    <div class="panel section">
+      <h2>Style</h2>
+      <div class="two">
+        <div class="field"><label>Code color</label>
+          <div class="color"><input type="color" id="fgPick" value="#181B1E"><input type="text" id="fg" value="#181B1E" spellcheck="false"></div></div>
+        <div class="field"><label>Background</label>
+          <div class="color"><input type="color" id="bgPick" value="#FFFFFF"><input type="text" id="bg" value="#FFFFFF" spellcheck="false"></div>
+          <label class="inline" style="font-weight:500;font-size:13px"><input type="checkbox" id="transparent"> Transparent background</label></div>
+      </div>
+      <div class="field"><label>Module shape</label>
+        <div class="seg" id="shapeSeg">
+          <button data-v="square" aria-pressed="true">Square</button><button data-v="rounded">Rounded</button><button data-v="dots">Dots</button>
+        </div></div>
+      <div class="field"><label>Corner eyes</label>
+        <div class="seg" id="eyeSeg">
+          <button data-v="square" aria-pressed="true">Square</button><button data-v="rounded">Rounded</button><button data-v="circle">Circle</button>
+        </div></div>
+      <div class="field"><label>Logo <span class="hint">PNG or SVG, square works best</span></label>
+        <div class="logo-row">
+          <div class="thumb" id="logoThumb"></div>
+          <button class="btn small filebtn">Choose file<input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp"></button>
+          <button class="btn small" id="logoClear">Remove</button>
+        </div></div>
+      <div class="two" id="logoOpts">
+        <div class="field"><label>Logo size <span class="rangeval" id="logoSizeVal">20%</span></label><input type="range" id="logoSize" min="10" max="30" value="20"></div>
+        <div class="field"><label>Clear space behind logo</label><label class="inline" style="font-weight:500;font-size:13px"><input type="checkbox" id="knockout" checked> Knock out modules</label></div>
+      </div>
+      <div class="field"><label>Error correction <span class="hint">higher survives more damage and logo coverage</span></label>
+        <select id="ec"><option value="auto" selected>Automatic (H with a logo, M without)</option><option value="L">L · 7%</option><option value="M">M · 15%</option><option value="Q">Q · 25%</option><option value="H">H · 30%</option></select></div>
+    </div>
+
+    <div class="panel section">
+      <h2>Frame</h2>
+      <div class="field"><label>Layout</label>
+        <div class="seg" id="frameSeg">
+          <button data-v="none" aria-pressed="true">None</button><button data-v="bottom">Label below</button><button data-v="top">Label above</button><button data-v="border">Border only</button>
+        </div></div>
+      <div id="frameOpts">
+        <div class="two">
+          <div class="field"><label>Label text</label><input type="text" id="frameText" value="Scan me" maxlength="40"></div>
+          <div class="field"><label>Frame color</label>
+            <div class="color"><input type="color" id="frPick" value="#1E6E5C"><input type="text" id="fr" value="#1E6E5C" spellcheck="false"></div></div>
+        </div>
+        <div class="field"><label>Corner radius <span class="rangeval" id="frameRadiusVal">2</span></label><input type="range" id="frameRadius" min="0" max="6" step="0.5" value="2"></div>
+      </div>
+    </div>
+
+    <div class="panel section">
+      <h2 id="presetsTitle">Brand presets</h2>
+      <div id="clientBlock" class="hidden" style="margin-bottom:14px">
+        <p class="note" id="clientNote" style="margin-bottom:8px"></p>
+        <div class="presets" id="clientPresetList"></div>
+      </div>
+      <p class="note" style="margin-bottom:10px" id="localNote">Save a client's colors, shapes, logo and frame once, then apply them to every code you make for them. Presets stay in this browser; export the file to move them.</p>
+      <div class="two" style="margin-bottom:10px">
+        <input type="text" id="presetName" placeholder="Preset name, e.g. Cornerstone">
+        <button class="btn primary" id="presetSave">Save current style</button>
+      </div>
+      <div class="presets" id="presetList"></div>
+      <div class="exports" style="margin-top:10px">
+        <button class="btn small" id="presetExport">Export presets</button>
+        <button class="btn small filebtn">Import presets<input type="file" id="presetImport" accept="application/json"></button>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const el = (id) => document.getElementById(id);
+
+// ---------- state ----------
+const state = {
+  type:'url', data:{},
+  fg:'#181B1E', bg:'#FFFFFF', transparent:false,
+  shape:'square', eye:'square',
+  logo:null, logoSize:20, knockout:true, ec:'auto',
+  frame:'none', frameText:'Scan me', frameColor:'#1E6E5C', frameRadius:2
+};
+
+// ---------- content types ----------
+const TYPES = {
+  url:  {label:'Link', fields:[['url','Web address','url','https://']]},
+  text: {label:'Text', fields:[['text','Text','textarea','']]},
+  vcard:{label:'Contact', fields:[['first','First name','text',''],['last','Last name','text',''],['org','Church or organization','text',''],['title','Role','text',''],['phone','Phone','tel',''],['email','Email','email',''],['url','Website','url','']]},
+  wifi: {label:'Wi‑Fi', fields:[['ssid','Network name','text',''],['pass','Password','password',''],['sec','Security','select','WPA|WEP|nopass']]},
+  email:{label:'Email', fields:[['to','To','email',''],['subject','Subject','text',''],['body','Message','textarea','']]},
+  phone:{label:'Phone', fields:[['tel','Phone number','tel','']]},
+  sms:  {label:'Text message', fields:[['tel','Phone number','tel',''],['msg','Message','textarea','']]}
+};
+const esc = s => String(s||'');
+const wifiEsc = s => esc(s).replace(/([\\;,:"])/g,'\\$1');
+
+// This is the single seam for dynamic codes later: a redirect provider
+// would mint a short link here and return it instead of the raw payload.
+function buildPayload(){
+  const d = state.data;
+  switch(state.type){
+    case 'url': return esc(d.url).trim();
+    case 'text': return esc(d.text);
+    case 'vcard': {
+      if(!(d.first||d.last||d.org||d.phone||d.email)) return '';
+      const L=['BEGIN:VCARD','VERSION:3.0',`N:${esc(d.last)};${esc(d.first)};;;`,`FN:${[d.first,d.last].filter(Boolean).join(' ')}`];
+      if(d.org) L.push('ORG:'+esc(d.org)); if(d.title) L.push('TITLE:'+esc(d.title));
+      if(d.phone) L.push('TEL;TYPE=CELL:'+esc(d.phone)); if(d.email) L.push('EMAIL:'+esc(d.email));
+      if(d.url) L.push('URL:'+esc(d.url)); L.push('END:VCARD'); return L.join('\n');
+    }
+    case 'wifi': if(!d.ssid) return ''; return `WIFI:T:${d.sec||'WPA'};S:${wifiEsc(d.ssid)};${(d.sec||'WPA')==='nopass'?'':'P:'+wifiEsc(d.pass)+';'};;`;
+    case 'email': { if(!d.to) return ''; const q=[]; if(d.subject) q.push('subject='+encodeURIComponent(d.subject)); if(d.body) q.push('body='+encodeURIComponent(d.body)); return 'mailto:'+esc(d.to).trim()+(q.length?'?'+q.join('&'):''); }
+    case 'phone': return d.tel?'tel:'+esc(d.tel).replace(/\s+/g,''):'';
+    case 'sms': return d.tel?`SMSTO:${esc(d.tel).replace(/\s+/g,'')}:${esc(d.msg)}`:'';
+  }
+  return '';
+}
+
+function renderTypeSeg(){
+  const seg=el('typeSeg'); seg.innerHTML='';
+  Object.entries(TYPES).forEach(([k,t])=>{
+    const b=document.createElement('button'); b.textContent=t.label; b.setAttribute('role','tab');
+    b.setAttribute('aria-pressed', String(k===state.type));
+    b.onclick=()=>{ state.type=k; renderTypeSeg(); renderFields(); update(); };
+    seg.appendChild(b);
+  });
+}
+function renderFields(){
+  const wrap=el('fields'); wrap.innerHTML='';
+  TYPES[state.type].fields.forEach(([key,label,kind,extra])=>{
+    const f=document.createElement('div'); f.className='field';
+    const l=document.createElement('label'); l.textContent=label; l.htmlFor='f_'+key; f.appendChild(l);
+    let inp;
+    if(kind==='textarea'){ inp=document.createElement('textarea'); }
+    else if(kind==='select'){ inp=document.createElement('select'); extra.split('|').forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v==='nopass'?'Open (no password)':v;inp.appendChild(o);}); }
+    else { inp=document.createElement('input'); inp.type=kind; if(extra) inp.placeholder=extra; inp.autocomplete='off'; }
+    inp.id='f_'+key; inp.value=state.data[key]||'';
+    inp.oninput=()=>{ state.data[key]=inp.value; update(); };
+    f.appendChild(inp); wrap.appendChild(f);
+  });
+}
+
+// ---------- color helpers ----------
+function hexOk(h){ return /^#[0-9a-f]{6}$/i.test(h); }
+function lum(h){ const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)); return .2126*c[0]+.7152*c[1]+.0722*c[2]; }
+function contrast(a,b){ const [x,y]=[lum(a),lum(b)]; return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
+
+// ---------- QR build ----------
+function makeMatrix(payload, ec){
+  const q = qrcode(0, ec); q.addData(payload); q.make();
+  const n=q.getModuleCount(); const m=[]; for(let r=0;r<n;r++){ m.push([]); for(let c=0;c<n;c++) m[r].push(q.isDark(r,c)); }
+  return m;
+}
+function effectiveEc(){ return state.ec==='auto' ? (state.logo?'H':'M') : state.ec; }
+
+/*RENDER-START*/
+function rr(x,y,w,h,r){ r=Math.min(r,w/2,h/2); return `M${x+r} ${y}h${w-2*r}a${r} ${r} 0 0 1 ${r} ${r}v${h-2*r}a${r} ${r} 0 0 1 ${-r} ${r}h${-(w-2*r)}a${r} ${r} 0 0 1 ${-r} ${-r}v${-(h-2*r)}a${r} ${r} 0 0 1 ${r} ${-r}z`; }
+const xml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function buildSvg(matrix, st){
+  const n=matrix.length, quiet=4;
+  const inner = n + quiet*2;               // code + quiet zone
+  const hasFrame = st.frame!=='none';
+  const pad = hasFrame ? 1.5 : 0;           // frame border thickness
+  const band = (st.frame==='bottom'||st.frame==='top') ? 5.5 : 0;
+  const W = inner + pad*2, H = inner + pad*2 + band;
+  const codeX = pad, codeY = pad + (st.frame==='top'?band:0);
+  const bgFill = st.transparent ? 'none' : st.bg;
+  const padFill = st.transparent ? '#FFFFFF' : st.bg;
+  const fg=st.fg;
+  let out=[];
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${W} ${H}" width="${W*10}" height="${H*10}">`);
+  if(hasFrame){
+    const rad = st.frameRadius;
+    out.push(`<path d="${rr(0,0,W,H,rad+pad)}" fill="${st.frameColor}"/>`);
+    out.push(`<path d="${rr(codeX,codeY,inner,inner,rad)}" fill="${bgFill==='none'?'#FFFFFF':bgFill}"/>`);
+    if(band){
+      const ty = st.frame==='top' ? pad + band/2 : codeY + inner + band/2;
+      const tfill = lum(st.frameColor) > 0.4 ? '#181B1E' : '#FFFFFF';
+      const size = Math.min(2.9, Math.max(1.4, (W-4) / Math.max(6, (st.frameText||'').length*0.62)));
+      out.push(`<text x="${W/2}" y="${ty}" text-anchor="middle" dominant-baseline="central" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="${size.toFixed(2)}" fill="${tfill}">${xml(st.frameText||'')}</text>`);
+    }
+  } else if(bgFill!=='none'){
+    out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="${bgFill}"/>`);
+  }
+
+  // logo clear region (in module units, relative to matrix)
+  let clear=null;
+  if(st.logo){
+    const size = Math.round(n * st.logoSize/100);
+    const s = size%2===n%2 ? size : size+1;   // keep symmetric centering
+    const start = Math.floor((n - s)/2);
+    clear = {start, end:start+s-1, s};
+  }
+  const inClear = (r,c) => clear && st.knockout && r>=clear.start && r<=clear.end && c>=clear.start && c<=clear.end;
+  const isEye = (r,c) => (r<7&&c<7)||(r<7&&c>=n-7)||(r>=n-7&&c<7);
+
+  // modules
+  const ox=codeX+quiet, oy=codeY+quiet;
+  let d='';
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+    if(!matrix[r][c] || isEye(r,c) || inClear(r,c)) continue;
+    const x=ox+c, y=oy+r;
+    if(st.shape==='dots') d+=`M${x+0.5} ${y+0.08}a.42 .42 0 1 1 0 .84a.42 .42 0 1 1 0 -.84z`;
+    else if(st.shape==='rounded') d+=rr(x+0.04,y+0.04,0.92,0.92,0.3);
+    else d+=`M${x} ${y}h1v1h-1z`;
+  }
+  out.push(`<path d="${d}" fill="${fg}"${st.shape==='square'?' shape-rendering="crispEdges"':''}/>`);
+
+  // eyes
+  const eyes=[[0,0],[n-7,0],[0,n-7]]; // [c,r]
+  eyes.forEach(([c,r])=>{
+    const x=ox+c, y=oy+r;
+    if(st.eye==='circle'){
+      out.push(`<circle cx="${x+3.5}" cy="${y+3.5}" r="3" fill="none" stroke="${fg}" stroke-width="1"/>`);
+      out.push(`<circle cx="${x+3.5}" cy="${y+3.5}" r="1.5" fill="${fg}"/>`);
+    } else {
+      const rad = st.eye==='rounded' ? 1.6 : 0, irad = st.eye==='rounded' ? 0.8 : 0;
+      out.push(`<path d="${rr(x+0.5,y+0.5,6,6,rad)}" fill="none" stroke="${fg}" stroke-width="1"/>`);
+      out.push(`<path d="${rr(x+2,y+2,3,3,irad)}" fill="${fg}"/>`);
+    }
+  });
+
+  // logo
+  if(clear){
+    const lx=ox+clear.start, ly=oy+clear.start, s=clear.s;
+    if(st.knockout) out.push(`<path d="${rr(lx-0.5,ly-0.5,s+1,s+1,0.9)}" fill="${padFill}"/>`);
+    const m=0.35, ls=s-m*2;
+    out.push(`<image x="${lx+m}" y="${ly+m}" width="${ls}" height="${ls}" preserveAspectRatio="xMidYMid meet" href="${st.logo}" xlink:href="${st.logo}"/>`);
+  }
+  out.push('</svg>');
+  return {svg: out.join(''), W, H, n};
+}
+/*RENDER-END*/
+
+// ---------- scan check ----------
+function scanCheck(payload, n, ec){
+  const rows=[];
+  const bgc = state.transparent ? '#FFFFFF' : state.bg;
+  const cr = contrast(state.fg, bgc);
+  if(cr < 3) rows.push(['bad', `Contrast is ${cr.toFixed(1)}:1. Most phone cameras need at least 4:1 — darken the code color or lighten the background.`]);
+  else if(cr < 4.5) rows.push(['warn', `Contrast is ${cr.toFixed(1)}:1. Scans in good light; risky on glossy or dim surfaces.`]);
+  else rows.push(['ok', `Contrast ${cr.toFixed(1)}:1 — reads well.`]);
+  if(lum(state.fg) > lum(bgc)) rows.push(['warn','Light code on a dark background. Many scanners still read inverted codes, but older ones fail. Test on the phones your people actually use.']);
+  if(state.transparent) rows.push(['warn','Transparent background: whatever sits behind the code becomes its background. Keep it light and plain.']);
+  if(state.logo){
+    const cap={L:.07,M:.15,Q:.25,H:.30}[ec];
+    const area = Math.pow(state.logoSize/100,2) + (state.knockout ? 0.02 : 0);
+    if(area > cap*0.75) rows.push(['bad',`Logo covers ~${Math.round(area*100)}% of the code, past what level ${ec} can recover. Shrink it or raise error correction.`]);
+    else if(area > cap*0.5) rows.push(['warn',`Logo covers ~${Math.round(area*100)}% of the code — near the limit for level ${ec}. Test before printing.`]);
+    else rows.push(['ok',`Logo covers ~${Math.round(area*100)}% — safely inside level ${ec}'s recovery margin.`]);
+  }
+  if(n > 57) rows.push(['warn',`${n}×${n} modules — dense. Shorten the link (or the contact card) so it prints smaller and scans from farther away.`]);
+  const minIn = (n+8)*0.5/25.4; // 0.5 mm per module incl. quiet zone
+  rows.push(['meta', `${n}×${n} modules, error correction ${ec}. Don't print narrower than about ${minIn.toFixed(1)} in, and expect scans from up to ~10× the printed width.`]);
+  return rows;
+}
+
+// ---------- update ----------
+let current=null; // {svg, W, H}
+function update(){
+  const payload = buildPayload();
+  el('payload').textContent = payload || '—';
+  const stage=el('stage'), check=el('check');
+  el('logoOpts').classList.toggle('hidden', !state.logo);
+  el('frameOpts').classList.toggle('hidden', state.frame==='none');
+  el('frameText').closest('.field').classList.toggle('hidden', state.frame==='border');
+  if(!payload){ current=null; stage.innerHTML='<p class="empty">Enter a link or some content and your code appears here.</p>'; check.innerHTML=''; setExports(false); return; }
+  const ec = effectiveEc();
+  let matrix;
+  try { matrix = makeMatrix(payload, ec); }
+  catch(e){ current=null; stage.innerHTML='<p class="empty">That content is too long to fit in a QR code. Shorten it or use a link instead.</p>'; check.innerHTML=''; setExports(false); return; }
+  current = buildSvg(matrix, state);
+  stage.innerHTML = current.svg;
+  check.innerHTML = scanCheck(payload, current.n, ec).map(([k,t])=> k==='meta' ? `<p class="meta">${xml(t)}</p>` : `<div class="row ${k}"><span class="dot"></span><span>${xml(t)}</span></div>`).join('');
+  setExports(true);
+}
+function setExports(on){ ['dlPng','dlSvg','copySvg'].forEach(id=>el(id).disabled=!on); }
+
+// ---------- style inputs ----------
+function bindColor(pickId, textId, key){
+  const p=el(pickId), t=el(textId);
+  p.oninput=()=>{ state[key]=p.value.toUpperCase(); t.value=state[key]; update(); };
+  t.oninput=()=>{ let v=t.value.trim(); if(!v.startsWith('#')) v='#'+v; if(hexOk(v)){ state[key]=v.toUpperCase(); p.value=v; update(); } };
+}
+bindColor('fgPick','fg','fg'); bindColor('bgPick','bg','bg'); bindColor('frPick','fr','frameColor');
+el('transparent').onchange=e=>{ state.transparent=e.target.checked; update(); };
+function bindSeg(id,key){ const seg=el(id); seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ state[key]=b.dataset.v; syncSeg(id,key); update(); }); }
+function syncSeg(id,key){ el(id).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===state[key]))); }
+bindSeg('shapeSeg','shape'); bindSeg('eyeSeg','eye'); bindSeg('frameSeg','frame');
+el('logoSize').oninput=e=>{ state.logoSize=+e.target.value; el('logoSizeVal').textContent=state.logoSize+'%'; update(); };
+el('knockout').onchange=e=>{ state.knockout=e.target.checked; update(); };
+el('ec').onchange=e=>{ state.ec=e.target.value; update(); };
+el('frameText').oninput=e=>{ state.frameText=e.target.value; update(); };
+el('frameRadius').oninput=e=>{ state.frameRadius=+e.target.value; el('frameRadiusVal').textContent=state.frameRadius; update(); };
+
+el('logoFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size > 2*1024*1024){ toast('Logo is over 2 MB — export a smaller version first.'); e.target.value=''; return; }
+  const rd=new FileReader(); rd.onload=()=>{ state.logo=rd.result; syncLogo(); update(); }; rd.readAsDataURL(f); e.target.value='';
+};
+el('logoClear').onclick=()=>{ state.logo=null; syncLogo(); update(); };
+function syncLogo(){ el('logoThumb').innerHTML = state.logo ? `<img src="${state.logo}" alt="">` : ''; }
+
+function syncStyleInputs(){
+  el('fg').value=state.fg; el('fgPick').value=state.fg; el('bg').value=state.bg; el('bgPick').value=state.bg;
+  el('fr').value=state.frameColor; el('frPick').value=state.frameColor; el('transparent').checked=state.transparent;
+  syncSeg('shapeSeg','shape'); syncSeg('eyeSeg','eye'); syncSeg('frameSeg','frame');
+  el('logoSize').value=state.logoSize; el('logoSizeVal').textContent=state.logoSize+'%'; el('knockout').checked=state.knockout;
+  el('ec').value=state.ec; el('frameText').value=state.frameText; el('frameRadius').value=state.frameRadius; el('frameRadiusVal').textContent=state.frameRadius;
+  syncLogo();
+}
+
+// ---------- exports ----------
+async function getDownloads(){
+  try { if(window.claude && typeof window.claude.use==='function') return await window.claude.use('downloads'); } catch(e){}
+  return null;
+}
+function fileBase(){ const d=state.data; const raw = state.type==='url' ? esc(d.url).replace(/^https?:\/\//,'').split(/[\/?#]/)[0] : (d.first||d.ssid||d.to||d.tel||'qr'); return (raw||'qr').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase().slice(0,40) || 'qr'; }
+async function saveFile(filename, data){
+  const dl = await getDownloads();
+  if(!dl){
+    // Outside the claude.ai runtime (e.g. GitHub Pages) a normal browser download works.
+    try {
+      const blob = data instanceof Blob ? data : new Blob([data], {type: filename.endsWith('.svg') ? 'image/svg+xml' : filename.endsWith('.json') ? 'application/json' : 'application/octet-stream'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 2000); toast('Saved '+filename);
+    } catch(e){ toast('Saving files isn\'t available here. Use Copy SVG instead.'); }
+    return;
+  }
+  try { await dl.save({filename, data}); toast('Saved '+filename); }
+  catch(err){ if(err && err.code==='declined') return; toast(err && err.message ? err.message : 'Couldn\'t save the file.'); }
+}
+el('dlSvg').onclick=()=>{ if(!current) return; saveFile(fileBase()+'-qr.svg', current.svg); };
+el('copySvg').onclick=async()=>{ if(!current) return; try{ await navigator.clipboard.writeText(current.svg); toast('SVG copied'); }catch(e){ toast('Clipboard blocked — select the code and copy manually.'); } };
+el('dlPng').onclick=()=>{
+  if(!current) return;
+  const target=+el('pngSize').value;
+  const scale=target/current.W;
+  const cw=Math.round(current.W*scale), ch=Math.round(current.H*scale);
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch; const ctx=cv.getContext('2d');
+    ctx.drawImage(img,0,0,cw,ch);
+    cv.toBlob(b=>{ if(!b){ toast('Couldn\'t render the PNG.'); return; } saveFile(`${fileBase()}-qr-${cw}px.png`, b); },'image/png');
+  };
+  img.onerror=()=>toast('Couldn\'t render the PNG. Try the SVG.');
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(current.svg);
+};
+
+// ---------- presets ----------
+const CLIENT=(new URLSearchParams(location.search).get('client')||'').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,40);
+const PKEY='oasis-qr-presets-v1'+(CLIENT?':'+CLIENT:'');
+const STYLE_KEYS=['fg','bg','transparent','shape','eye','logo','logoSize','knockout','ec','frame','frameText','frameColor','frameRadius'];
+function loadPresets(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'[]'); }catch(e){ return []; } }
+function storePresets(list){ try{ localStorage.setItem(PKEY, JSON.stringify(list)); return true; }catch(e){ toast('Couldn\'t save — browser storage is full or blocked.'); return false; } }
+function renderPresets(){
+  const list=loadPresets(); const wrap=el('presetList'); wrap.innerHTML='';
+  if(!list.length){ wrap.innerHTML='<p class="note">No presets yet. Style a code, name it, and save.</p>'; return; }
+  list.forEach((p,i)=>{
+    const row=document.createElement('div'); row.className='preset';
+    row.innerHTML=`<span class="sw" style="background:${xml(p.style.fg)}"></span><span class="name">${xml(p.name)}</span><span class="actions"><button class="btn small">Apply</button><button class="btn small danger">Delete</button></span>`;
+    const [apply,del]=row.querySelectorAll('button');
+    apply.onclick=()=>{ Object.assign(state, p.style); syncStyleInputs(); update(); toast('Applied '+p.name); };
+    del.onclick=()=>{ if(!confirm(`Delete the "${p.name}" preset?`)) return; list.splice(i,1); storePresets(list); renderPresets(); };
+    wrap.appendChild(row);
+  });
+}
+el('presetSave').onclick=()=>{
+  const name=el('presetName').value.trim(); if(!name){ toast('Give the preset a name first.'); el('presetName').focus(); return; }
+  const style={}; STYLE_KEYS.forEach(k=>style[k]=state[k]);
+  const list=loadPresets(); const idx=list.findIndex(p=>p.name.toLowerCase()===name.toLowerCase());
+  if(idx>=0) list[idx]={name,style}; else list.push({name,style});
+  if(storePresets(list)){ renderPresets(); toast(idx>=0?'Updated '+name:'Saved '+name); el('presetName').value=''; }
+};
+el('presetExport').onclick=()=>{ const list=loadPresets(); if(!list.length){ toast('Nothing to export yet.'); return; } saveFile('oasis-qr-presets.json', JSON.stringify(list,null,2)); };
+el('presetImport').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{
+    try{ const inc=JSON.parse(rd.result); if(!Array.isArray(inc)) throw 0;
+      const list=loadPresets(); let added=0;
+      inc.forEach(p=>{ if(!p||typeof p.name!=='string'||!p.style) return; const style={}; STYLE_KEYS.forEach(k=>{ if(k in p.style) style[k]=p.style[k]; });
+        const i=list.findIndex(q=>q.name.toLowerCase()===p.name.toLowerCase()); if(i>=0) list[i]={name:p.name,style}; else list.push({name:p.name,style}); added++; });
+      storePresets(list); renderPresets(); toast(`Imported ${added} preset${added===1?'':'s'}`);
+    }catch(err){ toast('That file isn\'t a presets export.'); }
+  }; rd.readAsText(f); e.target.value='';
+};
+
+// ---------- client presets (from clients/<slug>.json in the repo) ----------
+function applyPreset(p){ Object.assign(state, p.style); syncStyleInputs(); update(); toast('Applied '+p.name); }
+function presetRow(p, actions){
+  const row=document.createElement('div'); row.className='preset';
+  row.innerHTML=`<span class="sw" style="background:${xml(p.style.fg)}"></span><span class="name">${xml(p.name)}</span><span class="actions"></span>`;
+  actions.forEach(([label,cls,fn])=>{ const b=document.createElement('button'); b.className='btn small'+(cls?' '+cls:''); b.textContent=label; b.onclick=fn; row.querySelector('.actions').appendChild(b); });
+  return row;
+}
+async function loadClient(){
+  if(!CLIENT) return;
+  el('clientBlock').classList.remove('hidden');
+  el('localNote').textContent='Your own saved styles. These stay in this browser; export the file to move them.';
+  const note=el('clientNote'), list=el('clientPresetList');
+  note.textContent='Loading presets…';
+  let data=null;
+  try { const r=await fetch('clients/'+CLIENT+'.json',{cache:'no-cache'}); if(r.ok) data=await r.json(); } catch(e){}
+  if(!data || !Array.isArray(data.presets)){ note.textContent=`No shared presets found for "${CLIENT}". Ask Oasis to add a clients/${CLIENT}.json file.`; return; }
+  const cname = typeof data.name==='string' && data.name ? data.name : CLIENT;
+  document.title = cname+' · Oasis QR';
+  el('tagline').textContent = 'QR codes for '+cname+', styled to brand.';
+  el('presetsTitle').textContent = cname+' presets';
+  note.textContent = data.presets.length ? 'Managed by Oasis. Pick one and it styles every code you make.' : 'No presets yet.';
+  list.innerHTML='';
+  data.presets.forEach(p=>{ if(!p||typeof p.name!=='string'||!p.style) return; const style={}; STYLE_KEYS.forEach(k=>{ if(k in p.style) style[k]=p.style[k]; }); list.appendChild(presetRow({name:p.name,style},[['Apply','',()=>applyPreset({name:p.name,style})]])); });
+  const first=data.presets[0]; if(first && first.style){ const style={}; STYLE_KEYS.forEach(k=>{ if(k in first.style) style[k]=first.style[k]; }); Object.assign(state,style); syncStyleInputs(); update(); }
+}
+
+// ---------- toast ----------
+let tt; function toast(msg){ const t=el('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2600); }
+
+// ---------- init ----------
+renderTypeSeg(); renderFields(); syncStyleInputs(); renderPresets(); update(); loadClient();
+})();
+</script>
+</body>
+</html>
